@@ -17,11 +17,11 @@ dp = Dispatcher()
 COINGECKO_URL = "https://api.coingecko.com/api/v3/simple/price"
 
 
-def get_price(coin_id: str):
-    params = {"ids": coin_id, "vs_currencies": "usd"}
+def get_price(coin_id: str, vs_currency: str):
+    params = {"ids": coin_id, "vs_currencies": vs_currency}
     response = requests.get(COINGECKO_URL, params=params, timeout=10)
     data = response.json()
-    return data[coin_id]["usd"]
+    return data[coin_id][vs_currency]
 
 @dp.message(CommandStart())
 async def start_handler(message: Message):
@@ -38,12 +38,23 @@ async def price_handler(message: Message):
         [InlineKeyboardButton(text="Ethereum", callback_data="price_ethereum")],
     ])
     await message.answer("Выбери монету:", reply_markup=keyboard)
-    
+
 @dp.callback_query(F.data.startswith("price_"))
 async def price_callback(callback: CallbackQuery):
     coin_id = callback.data.split("_")[1]
-    price = get_price(coin_id)
-    await callback.message.answer(f"{coin_id.capitalize()}: {price} USD")
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="USD", callback_data=f"show_{coin_id}_usd")],
+        [InlineKeyboardButton(text="RUB", callback_data=f"show_{coin_id}_rub")],
+    ])
+    await callback.message.answer("Выбери валюту:", reply_markup=keyboard)
+    await callback.answer()
+
+@dp.callback_query(F.data.startswith("show_"))
+async def show_callback(callback: CallbackQuery):
+    coin_id = callback.data.split("_")[1]
+    vs_currency = callback.data.split("_")[2]
+    price = get_price(coin_id, vs_currency)
+    await callback.message.answer(f"{coin_id.capitalize()}: {price} {vs_currency.upper()}")
     await callback.answer()
 
 @dp.message()
