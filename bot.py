@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import requests
 
 from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart, Command
@@ -13,6 +14,13 @@ TOKEN = os.getenv("BOT_TOKEN")
 logging.basicConfig(level=logging.INFO)
 dp = Dispatcher()
 
+COINGECKO_URL = "https://api.coingecko.com/api/v3/simple/price"
+
+
+def get_crypto_prices():
+    params = {"ids": "bitcoin,ethereum", "vs_currencies": "usd"}
+    response = requests.get(COINGECKO_URL, params=params, timeout=10)
+    return response.json()
 
 @dp.message(CommandStart())
 async def start_handler(message: Message):
@@ -21,6 +29,14 @@ async def start_handler(message: Message):
 @dp.message(Command("help"))
 async def help_handler(message: Message):
     await message.answer("Чем могу помочь?")
+
+@dp.message(Command("price"))
+async def price_handler(message: Message):
+    data = get_crypto_prices()
+    btc = data["bitcoin"]["usd"]
+    eth = data["ethereum"]["usd"]
+    text = f"Bitcoin: {btc} USD\nEthereum: {eth} USD"
+    await message.answer(text)
 
 @dp.message()
 async def echo_handler(message: Message):
