@@ -19,9 +19,17 @@ COINGECKO_URL = "https://api.coingecko.com/api/v3/simple/price"
 
 def get_price(coin_id: str, vs_currency: str):
     params = {"ids": coin_id, "vs_currencies": vs_currency}
-    response = requests.get(COINGECKO_URL, params=params, timeout=10)
-    data = response.json()
-    return data[coin_id][vs_currency]
+    try:
+        response = requests.get(COINGECKO_URL, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        return data[coin_id][vs_currency]
+    except requests.exceptions.RequestException as error:
+        logging.error(f"Ошибка запроса к API: {error}")
+        return None
+    except (KeyError, ValueError) as error:
+        logging.error(f"Неожиданный ответ API: {error}")
+        return None
 
 @dp.message(CommandStart())
 async def start_handler(message: Message):
@@ -53,8 +61,14 @@ async def price_callback(callback: CallbackQuery):
 async def show_callback(callback: CallbackQuery):
     coin_id = callback.data.split("_")[1]
     vs_currency = callback.data.split("_")[2]
+
     price = get_price(coin_id, vs_currency)
-    await callback.message.answer(f"{coin_id.capitalize()}: {price} {vs_currency.upper()}")
+
+    if price is None:
+        await callback.message.answer("Не удалось получить курс. Попробуй позже.")
+    else:
+        await callback.message.answer(f"{coin_id.capitalize()}: {price} {vs_currency.upper()}")
+
     await callback.answer()
 
 @dp.message()
