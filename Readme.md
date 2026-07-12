@@ -34,4 +34,3 @@ Telegram-бот для получения актуальных курсов кр
 3. Установить зависимости: `pip install -r requirements.txt`
 4. Создать файл `.env` и добавить токен: `BOT_TOKEN=ваш_токен`
 5. Запустить: `python bot.py`
-5. Запустить: `python bot.py`
