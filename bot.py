@@ -13,6 +13,8 @@ from aiogram.types import (
 )
 from dotenv import load_dotenv
 
+from database import init_db, add_favorite, get_favorites, remove_favorite
+
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 
@@ -88,12 +90,57 @@ async def show_callback(callback: CallbackQuery):
     await callback.answer()
 
 
+@dp.message(Command("add"))
+async def add_handler(message: Message):
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.answer("Укажи монету: /add bitcoin")
+        return
+
+    coin = parts[1].lower()
+    add_favorite(message.from_user.id, coin)
+    await message.answer(f"Монета {coin} добавлена в избранное.")
+
+
+@dp.message(Command("remove"))
+async def remove_handler(message: Message):
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.answer("Укажи монету: /remove bitcoin")
+        return
+
+    coin = parts[1].lower()
+    remove_favorite(message.from_user.id, coin)
+    await message.answer(f"Монета {coin} удалена из избранного.")
+
+
+@dp.message(Command("my"))
+async def my_handler(message: Message):
+    coins = get_favorites(message.from_user.id)
+
+    if not coins:
+        await message.answer("У тебя пока нет избранных монет. Добавь: /add bitcoin")
+        return
+
+    lines = []
+    for coin in coins:
+        price = get_price(coin, "usd")
+        if price is None:
+            lines.append(f"{coin.capitalize()}: не удалось получить курс")
+        else:
+            lines.append(f"{coin.capitalize()}: {price} USD")
+
+    await message.answer("\n".join(lines))
+
+
 @dp.message()
 async def echo_handler(message: Message):
     await message.answer(f"Ты написал: {message.text}")
 
 
 async def main():
+    async def main():
+        init_db()
     bot = Bot(token=TOKEN)
     await dp.start_polling(bot)
 
