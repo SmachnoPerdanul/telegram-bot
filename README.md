@@ -1,8 +1,8 @@
 # Крипто-бот
 
-Telegram-бот для получения актуальных курсов криптовалют.
-Позволяет выбрать монету и валюту через интерактивные кнопки
-и получить текущую цену. Данные берутся из CoinGecko API.
+Telegram-бот для получения курсов криптовалют. Пользователь выбирает монету и валюту через inline-кнопки и получает актуальную цену. Можно вести личный список избранных монет и смотреть по нему сводку одной командой.
+
+Данные — [CoinGecko API](https://www.coingecko.com/en/api). Бот развёрнут на VPS и работает 24/7.
 
 ## Скриншот
 
@@ -10,27 +10,90 @@ Telegram-бот для получения актуальных курсов кр
 
 ## Возможности
 
-- Просмотр актуального курса криптовалют (Bitcoin, Ethereum)
-- Выбор валюты отображения: USD или RUB
-- Интерактивные inline-кнопки вместо ручного ввода команд
-- Обработка сетевых ошибок: при недоступности API бот сообщает об этом и продолжает работу
+- Курс криптовалюты в USD или RUB, выбор через inline-кнопки
+- Личный список избранных монет — у каждого пользователя свой
+- Сводка по всем избранным монетам одной командой
+- Обработка сетевых ошибок: при недоступности API бот сообщает об этом и продолжает работать
+- Логирование ошибок запросов
 
 ## Команды
 
-- `/start` — приветствие и краткая информация
-- `/help` — справка по возможностям
-- `/price` — выбор монеты и валюты, вывод курса
+| Команда | Что делает |
+|---|---|
+| `/start` | Приветствие |
+| `/help` | Справка по возможностям |
+| `/price` | Выбор монеты и валюты, вывод курса |
+| `/add <монета>` | Добавить монету в избранное, например `/add bitcoin` |
+| `/remove <монета>` | Убрать монету из избранного |
+| `/my` | Курсы всех избранных монет |
 
 ## Стек
 
-- Python 3.12
-- aiogram — работа с Telegram Bot API
-- requests — запросы к CoinGecko API
+- **Python 3.12**
+- **aiogram 3** — Telegram Bot API, команды, inline-клавиатуры, `callback_query`
+- **requests** — запросы к CoinGecko API с таймаутом и `raise_for_status`
+- **SQLite** — хранение избранного, параметризованные запросы, ограничение `UNIQUE(user_id, coin)` от дублей
+- **python-dotenv** — токен в `.env`, не в коде
+- **black + ruff** — форматирование и линтинг
 
-## Запуск
+## Структура
 
-1. Клонировать репозиторий
-2. Создать виртуальное окружение и активировать его
-3. Установить зависимости: `pip install -r requirements.txt`
-4. Создать файл `.env` и добавить токен: `BOT_TOKEN=ваш_токен`
-5. Запустить: `python bot.py`
+```
+bot.py         — хендлеры, клавиатуры, запрос к API
+database.py    — работа с SQLite, вынесена отдельным модулем
+requirements.txt
+```
+
+## Запуск локально
+
+```bash
+git clone https://github.com/agladcenko/crypto-rate-bot.git
+cd crypto-rate-bot
+python -m venv venv
+venv\Scripts\activate        # Windows
+source venv/bin/activate     # Linux/macOS
+pip install -r requirements.txt
+```
+
+Создать файл `.env` рядом с `bot.py`:
+
+```
+BOT_TOKEN=токен_от_BotFather
+```
+
+Запустить:
+
+```bash
+python bot.py
+```
+
+База данных `bot.db` создаётся автоматически при первом запуске.
+
+## Развёртывание на сервере
+
+Бот запущен на VPS как systemd-сервис: автозапуск при загрузке, `Restart=always` при падении, логи через `journalctl`.
+
+Пример юнита `/etc/systemd/system/crypto-bot.service`:
+
+```ini
+[Unit]
+Description=Crypto Rate Bot
+After=network.target
+
+[Service]
+Type=simple
+User=botuser
+WorkingDirectory=/home/botuser/crypto-rate-bot
+ExecStart=/home/botuser/crypto-rate-bot/venv/bin/python bot.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now crypto-bot
+sudo journalctl -u crypto-bot -f
+```
