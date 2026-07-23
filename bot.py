@@ -139,8 +139,7 @@ async def echo_handler(message: Message):
 
 
 async def main():
-    async def main():
-        init_db()
+    init_db()
     bot = Bot(token=TOKEN)
     await dp.start_polling(bot)
 
