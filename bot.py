@@ -41,12 +41,22 @@ def get_price(coin_id: str, vs_currency: str):
 
 @dp.message(CommandStart())
 async def start_handler(message: Message):
-    await message.answer("Привет! Я твой первый бот.")
+    await message.answer(
+        "Привет! Показываю актуальные курсы криптовалют.\n\n"
+        "/price — узнать курс\n"
+        "/help — все команды"
+    )
 
 
 @dp.message(Command("help"))
 async def help_handler(message: Message):
-    await message.answer("Чем могу помочь?")
+    await message.answer(
+        "Что я умею:\n\n"
+        "/price — курс монеты в USD или RUB\n"
+        "/add bitcoin — добавить монету в избранное\n"
+        "/remove bitcoin — убрать из избранного\n"
+        "/my — курсы всех избранных монет"
+    )
 
 
 @dp.message(Command("price"))
@@ -134,8 +144,8 @@ async def my_handler(message: Message):
 
 
 @dp.message()
-async def echo_handler(message: Message):
-    await message.answer(f"Ты написал: {message.text}")
+async def fallback_handler(message: Message):
+    await message.answer("Не понял команду. Список команд — /help")
 
 
 async def main():
